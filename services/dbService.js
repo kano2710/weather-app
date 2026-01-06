@@ -17,7 +17,7 @@ class DatabaseService {
                 const result = await pool.query(
                     `
                     UPDATE locations 
-                    SET latitude = $1, longitude = $2, country = $3, active = true
+                    SET latitude = $1, longitude = $2, country = $3
                     WHERE id = $4
                     RETURNING *
                     `,
@@ -28,8 +28,8 @@ class DatabaseService {
             } else {
                 const result = await pool.query(
                     `
-                    INSERT INTO locations (latitude, longitude, name, country, active)
-                    VALUES ($1, $2, $3, $4, true)
+                    INSERT INTO locations (latitude, longitude, name, country)
+                    VALUES ($1, $2, $3, $4)
                     RETURNING *
                     `,
                     [lat, lon, name, country]
@@ -46,10 +46,18 @@ class DatabaseService {
     // Remove a location (set inactive)
     async removeLocation(locationId) {
         try {
+            await pool.query(
+                `
+                DELETE FROM weather_data 
+                WHERE location_id = $1
+                `,
+                [locationId]
+            );
+
             const result = await pool.query(
                 `
-                UPDATE locations 
-                SET active = false WHERE id = $1 
+                DELETE FROM locations 
+                WHERE id = $1 
                 RETURNING *
                 `,
                 [locationId]
@@ -66,20 +74,19 @@ class DatabaseService {
         }
     }
 
-    // Get all active locations
+    // Get all locations
     async getActiveLocations() {
         try {
             const result = await pool.query(
                 `
                 SELECT * 
                 FROM locations 
-                WHERE active = true 
                 ORDER BY created_at DESC
                 `
             );
             return result.rows;
         } catch (error) {
-            console.error('Error getting active locations:', error.message);
+            console.error('Error getting locations:', error.message);
             throw error;
         }
     }
@@ -106,9 +113,10 @@ class DatabaseService {
     async saveWeatherData(locationId, weatherData) {
         try {
             const result = await pool.query(
-                `INSERT INTO weather_data (
-                location_id, temperature, feels_like, humidity, 
-                pressure, wind_speed, wind_direction, clouds, timestamp
+                `
+                INSERT INTO weather_data (
+                    location_id, temperature, feels_like, humidity, 
+                    pressure, wind_speed, wind_direction, clouds, timestamp
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING *
                 `,
@@ -152,7 +160,7 @@ class DatabaseService {
         }
     }
 
-    // Get latest weather data for all active locations
+    // Get latest weather data for all locations
     async getLatestWeatherForAllLocations() {
         try {
             const result = await pool.query(
@@ -163,7 +171,6 @@ class DatabaseService {
                 w.wind_speed, w.wind_direction, w.clouds, w.timestamp
                 FROM locations l
                 LEFT JOIN weather_data w ON l.id = w.location_id
-                WHERE l.active = true
                 ORDER BY l.id, w.timestamp DESC
                 `
             );

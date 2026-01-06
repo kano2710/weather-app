@@ -12,7 +12,6 @@ const createTables = async () => {
                 latitude DECIMAL(10,8) NOT NULL,
                 longitude DECIMAL(11,8) NOT NULL,
                 country VARCHAR(50),
-                active BOOLEAN DEFAULT true,
                 created_at TIMESTAMP DEFAULT NOW(),
                 CONSTRAINT unique_coords UNIQUE(latitude, longitude)
             );
@@ -46,11 +45,6 @@ const createTables = async () => {
             CREATE INDEX IF NOT EXISTS idx_weather_location ON weather_data(location_id);
         `);
         console.log('Index "idx_weather_location" created');
-
-        await pool.query(`
-            CREATE INDEX IF NOT EXISTS idx_location_active ON locations(active);
-        `);
-        console.log('Index "idx_location_active" created');
 
         // Verify tables exist
         console.log('\nVerifying tables...');

@@ -17,7 +17,6 @@ async function resetDatabase() {
                 longitude DECIMAL(10, 7) NOT NULL,
                 name VARCHAR(255) NOT NULL,
                 country VARCHAR(100),
-                active BOOLEAN DEFAULT true,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(latitude, longitude)
             )
