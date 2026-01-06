@@ -4,19 +4,39 @@ class DatabaseService {
     // add new location
     async addLocation(lat, lon, name, country) {
         try {
-            const result = await pool.query(
+            const existingLocation = await pool.query(
                 `
-                INSERT INTO locations (latitude, longitude, name, country, active)
-                VALUES ($1, $2, $3, $4, true)
-                ON CONFLICT (latitude, longitude) 
-                DO UPDATE SET active = true, name = EXCLUDED.name
-                RETURNING *
+                SELECT id 
+                FROM locations 
+                WHERE LOWER(name) = LOWER($1)
                 `,
-                [lat, lon, name, country]
+                [name]
             );
 
-            console.log(`Location added: ${name} (${lat}, ${lon})`);
-            return result.rows[0];
+            if (existingLocation.rows.length > 0) {
+                const result = await pool.query(
+                    `
+                    UPDATE locations 
+                    SET latitude = $1, longitude = $2, country = $3, active = true
+                    WHERE id = $4
+                    RETURNING *
+                    `,
+                    [lat, lon, country, existingLocation.rows[0].id]
+                );
+                console.log(`Location updated: ${name} (${lat}, ${lon})`);
+                return result.rows[0];
+            } else {
+                const result = await pool.query(
+                    `
+                    INSERT INTO locations (latitude, longitude, name, country, active)
+                    VALUES ($1, $2, $3, $4, true)
+                    RETURNING *
+                    `,
+                    [lat, lon, name, country]
+                );
+                console.log(`Location added: ${name} (${lat}, ${lon})`);
+                return result.rows[0];
+            }
         } catch (error) {
             console.error('Error adding location:', error.message);
             throw error;
