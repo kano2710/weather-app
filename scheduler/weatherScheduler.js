@@ -14,13 +14,11 @@ class WeatherScheduler {
             return;
         }
 
-        this.job = cron.schedule('0 * * * *', async () => {
-            console.log('Starting hourly weather collection...');
+        this.job = cron.schedule('*/2 * * * *', async () => {
             await this.collectWeatherData();
         });
 
         this.isRunning = true;
-        console.log('Weather scheduler started (runs every hour)');
 
         this.collectWeatherData();
     }
