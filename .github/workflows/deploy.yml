@@ -51,10 +51,6 @@ jobs:
           EXCLUDE: "/node_modules/, /.git/, /.github/"
           SCRIPT_BEFORE: |
             echo "Starting deployment..."
-            if [ -d ${{ secrets.REMOTE_PATH }} ]; then
-              echo "Backing up current deployment..."
-              cp -r ${{ secrets.REMOTE_PATH }} ${{ secrets.REMOTE_PATH }}-backup-$(date +%Y%m%d-%H%M%S) || true
-            fi
           SCRIPT_AFTER: |
             cd ${{ secrets.REMOTE_PATH }}
             echo "Installing dependencies..."
