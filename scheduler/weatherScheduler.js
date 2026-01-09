@@ -14,7 +14,7 @@ class WeatherScheduler {
             return;
         }
 
-        this.job = cron.schedule('*/2 * * * *', async () => {
+        this.job = cron.schedule('0 * * * *', async () => {
             await this.collectWeatherData();
         });
 

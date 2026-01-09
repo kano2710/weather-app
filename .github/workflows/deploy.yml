@@ -1,0 +1,63 @@
+name: Deploy to Namecheap
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Prepare deployment files
+        run: |
+          mkdir -p deploy
+          cp -r config routes scheduler services *.js package*.json deploy/
+          cp -r frontend/dist deploy/frontend-dist
+
+      - name: Deploy to Namecheap via SSH
+        uses: easingthemes/ssh-deploy@v5.1.0
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
+          SOURCE: "deploy/"
+          TARGET: ${{ secrets.REMOTE_PATH }}
+          EXCLUDE: "/node_modules/, /.git/, /.github/"
+          SCRIPT_BEFORE: |
+            echo "Starting deployment..."
+            if [ -d ${{ secrets.REMOTE_PATH }} ]; then
+              echo "Backing up current deployment..."
+              cp -r ${{ secrets.REMOTE_PATH }} ${{ secrets.REMOTE_PATH }}-backup-$(date +%Y%m%d-%H%M%S) || true
+            fi
+          SCRIPT_AFTER: |
+            cd ${{ secrets.REMOTE_PATH }}
+            echo "Installing dependencies..."
+            rm -rf node_modules
+            /home/kano27/nodevenv/weather-app.dhameliya.com/22/bin/npm install --omit=dev
+            echo "Restarting application..."
+            touch tmp/restart.txt
+            echo "Deployment complete!"
